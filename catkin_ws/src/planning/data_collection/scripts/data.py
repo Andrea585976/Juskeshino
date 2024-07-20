@@ -381,7 +381,7 @@ def data_collection(objectName, orientation_x, orientation_y, orientation_z, ori
                hora_actual = datetime.datetime.now()
                print(hora_actual)
               
-               filename = 'planning/data/scripts/object_point_cloud/' + object_name + '_' + str(hora_actual) + '.npz'
+               filename = 'planning/data_collection/scripts/object_point_cloud/' + object_name + '_' + str(hora_actual) + '.npz'
                #filename = object_name + '_' + str(hora_actual) + '.npz'
                print(filename)
 
