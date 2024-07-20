@@ -414,12 +414,11 @@ def data_collection(objectName, orientation_x, orientation_y, orientation_z, ori
 
 
                # Store data in a csv file
-               '''
+               
                #Para poner header. Hacerlo la primera vez.
                with open('planning/data/scripts/data.csv', 'w', newline='') as f_output:
                    csv_output = csv.DictWriter(f_output, fieldnames=data.keys())
                    csv_output.writeheader()
-               '''
 
 
                """
