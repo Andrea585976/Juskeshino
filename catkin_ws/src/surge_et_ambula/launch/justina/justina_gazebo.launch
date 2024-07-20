@@ -6,14 +6,25 @@
 
   <remap from="/cmd_vel" to="/hardware/mobile_base/cmd_vel"/>
   <arg name="world" default="appartment"/> 
-  <include file="$(find surge_et_ambula)/launch/justina/gazebo_simul/justina_hardware_gazebo.launch">
-    <arg name="posx"  value="10.61"/>
-    <arg name="posy"  value="11.24"/>
-    <arg name="posz"  value="0.05"/>
-    <arg name="yaw"   value="3.14"/>
-    <arg name="world" value="$(arg world)"/>
+ 
+  <!-- <include file="$(find surge_et_ambula)/launch/justina/gazebo_simul/justina_hardware_gazebo.launch">
+  <arg name="posx" value="10.61"/>
+  <arg name="posy" value="11.24"/>
+  <arg name="posz" value="0.05"/>
+  <arg name="yaw" value="3.14"/>
+  <arg name="world" value="$(arg world)"/>
   </include>
+  -->
   <include file="$(find surge_et_ambula)/launch/justina/gazebo_simul/justina_gazebo_controllers.launch"/>
+  <include file="$(find surge_et_ambula)/launch/justina/gazebo_simul/justina_hardware_gazebo.launch">
+	<arg name="posx"  value="7.68"/>
+	<arg name="posy"  value="5.24"/>
+	<arg name="posz"  value="0.05"/>
+	<arg name="yaw"   value="1.62"/>
+	<arg name="world" value="appartment"/>
+  </include>
+
+
 
   <include file="$(find surge_et_ambula)/launch/justina/navigation.launch">
     <arg name="static_map_file"  value="$(find config_files)/maps/$(arg map_name).yaml"/>
