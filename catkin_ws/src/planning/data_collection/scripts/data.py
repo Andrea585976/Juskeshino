@@ -381,7 +381,7 @@ def data_collection(objectName, orientation_x, orientation_y, orientation_z, ori
                hora_actual = datetime.datetime.now()
                print(hora_actual)
               
-               filename = 'planning/data/scripts/data_point_cloud/' + object_name + '_' + str(hora_actual) + '.npz'
+               filename = 'planning/data/scripts/object_point_cloud/' + object_name + '_' + str(hora_actual) + '.npz'
                #filename = object_name + '_' + str(hora_actual) + '.npz'
                print(filename)
 
@@ -416,7 +416,7 @@ def data_collection(objectName, orientation_x, orientation_y, orientation_z, ori
                # Store data in a csv file
                '''
                #Para poner header. Hacerlo la primera vez.
-               with open('planning/data/scripts/data2.csv', 'w', newline='') as f_output:
+               with open('planning/data/scripts/data.csv', 'w', newline='') as f_output:
                    csv_output = csv.DictWriter(f_output, fieldnames=data.keys())
                    csv_output.writeheader()
                '''
@@ -428,7 +428,8 @@ def data_collection(objectName, orientation_x, orientation_y, orientation_z, ori
                    csv_output.writeheader()
                    csv_output.writerow(data)
                """
-               append_dict_as_row('data.csv', data, data.keys())
+               append_dict_as_row('planning/data/scripts/data.csv', data, data.keys())
+               # append_dict_as_row('data.csv', data, data.keys())
                    #    rate.sleep()
                move_head = move_head + 0.1
                n = n + 1
