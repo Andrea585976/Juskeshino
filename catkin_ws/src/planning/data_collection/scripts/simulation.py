@@ -317,7 +317,7 @@ def main():
 
 
       
-       for i in range(5):
+       for i in range(25):
            random_orientation = object_random_orientation()
           
            orientation_x = random_orientation[0]
