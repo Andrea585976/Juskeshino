@@ -380,22 +380,25 @@ def data_collection(objectName, orientation_x, orientation_y, orientation_z, ori
               
                hora_actual = datetime.datetime.now()
                print(hora_actual)
-              
-               filename = 'planning/data_collection/scripts/object_point_cloud/' + object_name + '_' + str(hora_actual) + '.npz'
-               #filename = object_name + '_' + str(hora_actual) + '.npz'
+               
+               filename = object_name + '_' + str(hora_actual) + '.npz'
                print(filename)
+
+               #filename = 'planning/data_collection/scripts/object_point_cloud/' + object_name + '_' + str(hora_actual) + '.npz'
+               path_file = 'planning/data_collection/scripts/object_point_cloud/' + filename
 
 
                # Save the arrays to a npz file
-               np.savez(filename, numpy_arr_objectPointCloud)
+               np.savez(path_file, numpy_arr_objectPointCloud)
 
 
                # Load the arrays from the file
-               loaded_arrays = np.load(filename)
+               loaded_arrays = np.load(path_file)
                print("Point cloud from npz file:", loaded_arrays['arr_0'])
 
 
                # Save local-path file
+               #1188
                #data['object_point_cloud']="/" + filename
                data['object_point_cloud'] = filename
 

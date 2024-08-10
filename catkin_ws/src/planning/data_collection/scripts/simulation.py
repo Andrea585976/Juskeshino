@@ -12,6 +12,7 @@ from gazebo_msgs.srv import DeleteModel, DeleteModelRequest
 from gazebo_msgs.srv import SpawnModel
 from geometry_msgs.msg import Pose
 
+from gazebo_msgs.srv import GetModelProperties, GetModelPropertiesRequest
 
 from data import data_collection
 from juskeshino_tools.JuskeshinoHardware import JuskeshinoHardware
@@ -233,16 +234,48 @@ def set_model_state(model_name,
        rospy.logwarn("Service failed: " + str(e))
 
 
+def handler_set_static_model_service(req):
+    req.is_static =  True
+    print("Set static model!")
+
+def set_static_model_service():
+    s = rospy.Service("/gazebo/static_model", GetModelProperties, handler_set_static_model_service)
+
+def set_static_model_client(model_name):
+    rospy.wait_for_service("/gazebo/static_model")
+    req = GetModelPropertiesRequest()
+    req.model_name = model_name
+
+    try:
+       getModelProperties = rospy.ServiceProxy("/gazebo/static_model", GetModelProperties)
+       resp = getModelProperties(req)
+
+    except rospy.ServiceException as e:
+       rospy.logwarn("Service failed: " + str(e))
+
+
+def set_static_model(model_name):
+    rospy.wait_for_service("/gazebo/get_model_properties")
+    req = GetModelPropertiesRequest()
+    req.model_name = model_name
+
+    try:
+       getModelProperties = rospy.ServiceProxy("/gazebo/get_model_properties", GetModelProperties)
+       resp = getModelProperties(req)
+       resp.is_static = True
+       print("es estatico? =", resp.is_static)
+
+    except rospy.ServiceException as e:
+       rospy.logwarn("Service failed: " + str(e))
 
 
 def main():
    rospy.init_node("simulacion")
 
 
-   objects = ['004_sugar_box','001_chips_can', '024_bowl','005_tomato_soup_can', 
-               '029_plate', '007_tuna_fish_can',
+   objects = ['005_tomato_soup_can', '029_plate', '007_tuna_fish_can',
                '010_potted_meat_can', '011_banana', '056_tennis_ball', '033_spatula',
-               '014_lemon','017_orange']
+               '014_lemon','017_orange', '004_sugar_box','001_chips_can', '024_bowl']
   
    delete_model('hsr_pringles_03')
    delete_model('apple_01')
@@ -265,8 +298,8 @@ def main():
 
 
        spawn_model(object_name)
-
-
+       #set_static_model_client(object_name)
+       #set_static_model(object_name)
           
        #position_x = 10
        position_x = 7.62
@@ -317,7 +350,7 @@ def main():
 
 
       
-       for i in range(25):
+       for i in range(125):
            random_orientation = object_random_orientation()
           
            orientation_x = random_orientation[0]
