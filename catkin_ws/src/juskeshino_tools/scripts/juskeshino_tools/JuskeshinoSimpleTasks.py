@@ -87,20 +87,23 @@ class JuskeshinoSimpleTasks:
     
 
     def findHumanAndApproach(timeout):
-        head_poses = [[0.0, 0.0], [0.3, 0], [-0.3,0], [0.6, 0], [-0.6,0], [0.9,0], [-0.9, 0], [1.2,0], [-1.2,0], [1.5,0], [-1.5,0]]
-        JuskeshinoVision.enableHumanPoseDetection(True)
-
+        head_poses = [[0.0, 0.0], [0.3, 0], [-0.3,0], [0.6, 0], [-0.6,0]]#, [0.9,0], [-0.9, 0], [1.2,0], [-1.2,0], [1.5,0], [-1.5,0]]
+        JuskeshinoVision.enableHumanPose(True)
+        human_poses = []
         for [pan, tilt] in head_poses:
             if not JuskeshinoHardware.moveHead(pan,tilt,2.0):
                 JuskeshinoHardware.moveHead(pan,tilt,2.0)
             rospy.sleep(0.5)
-            human_poses = rospy.wait_for_message("/vision/human_pose/human_pose_array", HumanCoordinatesArray, timeout=1.0)
-            src_frame_id = human_poses.header.frame_id
-            human_poses = human_poses.coordinates_array
+            try:
+                human_poses = rospy.wait_for_message("/vision/human_pose/human_pose_array", HumanCoordinatesArray, timeout=3.0)
+                src_frame_id = human_poses.header.frame_id
+                human_poses = human_poses.coordinates_array
+            except:
+                human_poses = []
             if len(human_poses) > 0:
                 break
         if len(human_poses) < 1:
-            JuskeshinoVision.enableHumanPoseDetection(False)
+            JuskeshinoVision.enableHumanPose(False)
             return False
         
         nearest_x, nearest_y, nearest_z = 0,0,0
@@ -111,7 +114,11 @@ class JuskeshinoSimpleTasks:
                 x += k.keypoint_coordinates.position.x
                 y += k.keypoint_coordinates.position.y
                 z += k.keypoint_coordinates.position.z
-            x,y,z = x/len(p.keypoints_array), y/len(p.keypoints_array), z/len(p.keypoints_array)
+            try:
+                x,y,z = x/len(p.keypoints_array), y/len(p.keypoints_array), z/len(p.keypoints_array)
+            except:
+                x,y,z = 0,0,0
+                continue
             [x, y, z] = JuskeshinoSimpleTasks.transformPoint(x, y, z, "base_link", src_frame_id)
             dist = math.sqrt(x**2 + y**2)
             if dist < nearest_dist:
@@ -119,7 +126,7 @@ class JuskeshinoSimpleTasks:
                 nearest_y = y
                 nearest_z = z
                 nearest_dist = dist
-        JuskeshinoVision.enableHumanPoseDetection(False)
+        JuskeshinoVision.enableHumanPose(False)
         print("JuskeshinoSimpleTask.->Nearest human pose detected at: " + str([nearest_x, nearest_y, nearest_z]))
         nearest_dist -= 1.0 #Robot will get close at 1 meter from human
         nearest_theta = math.atan2(nearest_y, nearest_x)
@@ -147,59 +154,37 @@ class JuskeshinoSimpleTasks:
     
     def handling_location_la(position_obj):     # Recibe un  objeto de tipo position extraido de un mensaje pose de ROS
         l_threshold_la       = 0.26
-        r_threshold_la       = 0.11
+        r_threshold_la       = 0.15
         
         if position_obj.y > l_threshold_la:     # Objeto a la izquierda
             mov_izq = position_obj.y - l_threshold_la
             print("mov izq", mov_izq)
-            if abs(mov_izq) > 0.25:
-                print("2 move")
-                JuskeshinoNavigation.moveDist(-0.2, 5.0)
-                time.sleep(0.3)
-                JuskeshinoNavigation.moveLateral(mov_izq , 5.0)
-                time.sleep(0.4)
-                JuskeshinoNavigation.moveDist(0.2, 5.0)
-                
-                return True, mov_izq
-            else:
-                JuskeshinoNavigation.moveLateral(mov_izq , 5.0)
-                time.sleep(0.2)
-                return False, 0
+            JuskeshinoNavigation.moveLateral(mov_izq , 5.0)
+            return 
 
         if position_obj.y < r_threshold_la:     # Objeto a la derecha
             mov_der = position_obj.y - r_threshold_la
             print("mov der", mov_der)
-            if abs(mov_der) > 0.25:
-                print("22 move")
-                JuskeshinoNavigation.moveDist(-0.2, 5.0)
-                time.sleep(0.2)
-                JuskeshinoNavigation.moveLateral(mov_der , 5.0)
-                time.sleep(0.4)
-                JuskeshinoNavigation.moveDist(0.2, 5.0)
-                return True, mov_der
-                
-            else:
-                JuskeshinoNavigation.moveLateral(mov_der , 5.0)
-                time.sleep(0.2)
-                return False, 0
+            JuskeshinoNavigation.moveLateral(mov_der , 5.0)
+            time.sleep(0.2)
+            return 
             
-        return False, 0
     
 
 
-    def object_search(name_obj):
-        JuskeshinoHardware.moveHead(0,-1, 5)
+    def object_search(name_obj, tilt):
+        JuskeshinoHardware.moveHead(0,tilt, 5)
         print("JuskeshinoSimpleTask.->Primer intento")
         [obj, img] = JuskeshinoVision.detectAndRecognizeObjectWithoutOrientation(name_obj)
 
         if obj == None: # si no reconocio el objeto
-            JuskeshinoHardware.moveHead(-0.3,-1, 5) #move head to the right 
+            JuskeshinoHardware.moveHead(-0.5,tilt, 5) #move head to the right 
             time.sleep(1)
             [obj, img] = JuskeshinoVision.detectAndRecognizeObjectWithoutOrientation(name_obj)
             print("JuskeshinoSimpleTask.->Segundo intento")
 
             if obj == None: # si no reconocio el objeto
-                JuskeshinoHardware.moveHead(0.3,-1, 5) #move head to the left
+                JuskeshinoHardware.moveHead(0.5,tilt, 5) #move head to the left
                 time.sleep(1)
                 [obj, img] = JuskeshinoVision.detectAndRecognizeObjectWithoutOrientation(name_obj)
                 print("JuskeshinoSimpleTask.->tercer intento")
@@ -217,19 +202,19 @@ class JuskeshinoSimpleTasks:
 
 
         
-    def object_search_orientation(name_obj):
-        JuskeshinoHardware.moveHead(0,-1, 5)
+    def object_search_orientation(name_obj, tilt):
+        JuskeshinoHardware.moveHead(0,tilt, 5)
         print("JuskeshinoSimpleTask.->Primer intento")
         [obj, img] = JuskeshinoVision.detectAndRecognizeObject(name_obj)
 
         if obj == None: # si no reconocio el objeto
-            JuskeshinoHardware.moveHead(-0.3,-1, 5) #move head to the right 
+            JuskeshinoHardware.moveHead(-0.5,tilt, 5) #move head to the right 
             time.sleep(1)
             [obj, img] = JuskeshinoVision.detectAndRecognizeObject(name_obj)
             print("JuskeshinoSimpleTask.->Segundo intento")
 
             if obj == None: # si no reconocio el objeto
-                JuskeshinoHardware.moveHead(0.3,-1, 5) #move head to the left
+                JuskeshinoHardware.moveHead(0.5,tilt, 5) #move head to the left
                 time.sleep(1)
                 [obj, img] = JuskeshinoVision.detectAndRecognizeObject(name_obj)
                 print("JuskeshinoSimpleTask.->tercer intento")

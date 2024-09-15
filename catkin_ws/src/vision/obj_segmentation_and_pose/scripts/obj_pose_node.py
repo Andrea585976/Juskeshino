@@ -14,7 +14,7 @@ from cv_bridge import CvBridge
 
 
 MAXIMUM_GRIP_LENGTH = 0.16
-MAXIMIUN_CUBE_SIZE  = 0.16
+MAXIMIUN_CUBE_SIZE  = 0.14
 
 
 def get_cv_mats_from_cloud_message(cloud_msg):
@@ -60,7 +60,6 @@ def get_centroid(img_bgr):
 
 
 def pca(xyz_points):    # pc del contorno mas cercano
-    print("xyz_point shape: ", xyz_points.shape)
     eig_val, eig_vect = np.linalg.eig(np.cov(np.transpose(xyz_points))) # Eigenvalues and eigenvectors from Point Cloud Cov Matrix
     idx = eig_val.argsort()
     eig_val  = eig_val[idx]
@@ -76,37 +75,11 @@ def pca(xyz_points):    # pc del contorno mas cercano
     size_obj = np.asarray([H, L,W])
     idx = size_obj.argsort()  # entrega el orden de las 3 componentes principale de menor a mayor 
     size_obj = size_obj[idx]
-    print("size obj", size_obj)         # menor a mayor 
+    #print("size obj", size_obj)         # menor a mayor 
     # Los vectores de salida estan en el frame base_link
     size_object = Vector3(x = size_obj[2] , z = size_obj[1], y = size_obj[0])
     return [eig_vect[:,2], eig_vect[:,1] , eig_vect[:,0]], [eig_val[2], eig_val[1], eig_val[0]], size_object
 
-
-def object_pose_without_PCA(centroid):
-    # Asignacion de ejes del objeto
-    eje_x_obj = np.asarray([1, 0, 0], dtype=np.float64 )# coordenadas en 'base_link' 
-    eje_z_obj = np.asarray([0, 0, 1], dtype=np.float64 )# coordenadas en 'base_link'
-    eje_y_obj = np.asarray([0, 1, 0], dtype=np.float64 )# coordenadas en 'base_link'
-    # Se forma la matriz de rotacion (columnas) del objeto, a partir de ella se obtienen los cuaterniones necesarios para generar el frame del objeto
-    RM = np.asarray([eje_x_obj, eje_y_obj , eje_z_obj])
-    RM = RM.T
-    TM = [[RM[0,0], RM[0,1] , RM[0,2], 0],
-         [RM[1,0], RM[1,1] , RM[1,2], 0],
-         [RM[2,0], RM[2,1] , RM[2,2], 0], 
-         [0, 0, 0, 1]]
-
-    r,p,y = tft.euler_from_matrix(np.asarray(TM))
-    quaternion_obj = tft.quaternion_from_euler(r, p, y)
-    obj_pose = Pose()
-    obj_pose.position.x, obj_pose.position.y, obj_pose.position.z = centroid[0], centroid[1], centroid[2]
-    obj_pose.orientation.x = quaternion_obj[0]
-    obj_pose.orientation.y = quaternion_obj[1]
-    obj_pose.orientation.z = quaternion_obj[2]
-    obj_pose.orientation.w = quaternion_obj[3]
-
-    broadcaster_frame_object("base_link", "object", obj_pose)
-    # Retorna la pose del objeto en 'base_link'
-    return obj_pose
 
 
 
@@ -124,18 +97,10 @@ def object_pose(centroid, principal_component, second_component, size_obj, name_
     eje_z = np.asarray([0, 0, 1], dtype=np.float64 )# coordenadas en 'base_link'
     angle_obj = np.abs(np.arcsin( np.dot(principal_component , eje_z ) / (np.linalg.norm(principal_component ) * 1) ))
     print("angulo del objeto respecto de la superficie: ", np.rad2deg(angle_obj))
-
-
-    """
-    p = Point()
-    p.x, p.y, p.z = second_component[0], second_component[1], second_component[2] 
-    print("s c", second_component)
-    publish_arow_marker(centroid, p ,"base_link", 6, "z_obj")
-    """
     
     # ************************************************************************************************
     if ((angle_obj < np.deg2rad(30)) or (angle_obj > np.deg2rad(150))):  # Si el objeto es horizontal
-        if (size_obj.x >= MAXIMIUN_CUBE_SIZE):        # Si el objeto es
+        if (size_obj.x > MAXIMIUN_CUBE_SIZE):        # Si el objeto es
             # Realiza agarre superior
             obj_state = 'horizontal'
 
@@ -175,12 +140,12 @@ def object_pose(centroid, principal_component, second_component, size_obj, name_
             # Si el objeto es pequenio se construye un frame que permita el agarre superior
             obj_state = 'horizontal'
             c_obj, graspable = object_category(size_obj, obj_state, name_obj)
-
-            print("se construye un frame que permita el agarre superior")
             obj_state = 'horizontal'
-            eje_x_obj = np.asarray([1, 0, 0], dtype=np.float64)
-            eje_z_obj = eje_z
-            eje_y_obj = np.cross(eje_z_obj , eje_x_obj )
+            print("se construye un frame que permita el agarre frontal")
+            eje_y_obj = np.asarray([0, 1, 0], dtype=np.float64)
+            eje_z_obj = np.asarray([1, 0, 0], dtype=np.float64)
+            eje_x_obj = np.cross(eje_z_obj , eje_y_obj )
+        
 
 
     # ********************************************
@@ -213,7 +178,7 @@ def object_pose(centroid, principal_component, second_component, size_obj, name_
                     eje_x_obj = principal_component 
                     eje_y_obj = np.cross(eje_z_obj , eje_x_obj )
         """
-        if (c_obj == "PRISM"):
+        if (c_obj == "PRISM_VERTICAL"):
             if (PCA_vertical == True):
                 # Asignacion de ejes del objeto
                 eje_z_obj = second_component 
@@ -221,18 +186,19 @@ def object_pose(centroid, principal_component, second_component, size_obj, name_
                 eje_y_obj = np.cross(eje_z_obj , eje_x_obj )
                 print("COnstruccion de frame con PCA")
             else:
-                eje_x_obj = np.asarray([0, 0, 1], dtype=np.float64)
+                eje_y_obj = np.asarray([0, 1, 0], dtype=np.float64)
                 eje_z_obj = np.asarray([1, 0, 0], dtype=np.float64)
-                eje_y_obj = np.cross(eje_z_obj , eje_x_obj )
+                eje_x_obj = np.cross(eje_z_obj , eje_y_obj )
+                print("COnstruccion de frame sin PCA")
             
 
         else:
             # Si el objeto es pequenio se construye un frame que permita el agarre superior
             print("SMALL VERTICAL.................")
             print("se construye un frame que permita el agarre frontal")
-            eje_x_obj = np.asarray([1, 0, 0], dtype=np.float64)
-            eje_z_obj = eje_z
-            eje_y_obj = np.cross(eje_z_obj , eje_x_obj )
+            eje_y_obj = np.asarray([0, 1, 0], dtype=np.float64)
+            eje_z_obj = np.asarray([1, 0, 0], dtype=np.float64)
+            eje_x_obj = np.cross(eje_z_obj , eje_y_obj )
 
     # **************************************************************************************************
 
@@ -248,13 +214,13 @@ def object_pose(centroid, principal_component, second_component, size_obj, name_
     r,p,y = tft.euler_from_matrix(np.asarray(TM))
     quaternion_obj = tft.quaternion_from_euler(r, p, y)
     obj_pose = Pose()
-    print("centroid before", centroid)
-    if((c_obj == "PRISM") and (obj_state == 'vertical')):
-        obj_pose.position.x, obj_pose.position.y, obj_pose.position.z = centroid[0], centroid[1], centroid[2] + 0.03
+    #if((c_obj == "PRISM") and (obj_state == 'vertical')):
+    if(c_obj == "PRISM_VERTICAL"):
+        obj_pose.position.x, obj_pose.position.y, obj_pose.position.z = centroid[0], centroid[1], centroid[2] + 0.0
         
     else:
         obj_pose.position.x, obj_pose.position.y, obj_pose.position.z = centroid[0], centroid[1], centroid[2]
-    print("centroid ", centroid)
+    
     obj_pose.orientation.x = quaternion_obj[0]
     obj_pose.orientation.y = quaternion_obj[1]
     obj_pose.orientation.z = quaternion_obj[2]
@@ -310,7 +276,6 @@ def publish_arow_marker(centroide_cam, p1,frame_id, id, name):
 
 def get_obj_pose_response(obj_state, c_obj, size_obj, obj_pose, graspable):
     resp = RecognizeObjectResponse()
-    resp.recog_object.object_state = obj_state
     resp.recog_object.category = c_obj
     resp.recog_object.graspable  = graspable 
     resp.recog_object.size = size_obj
@@ -319,17 +284,15 @@ def get_obj_pose_response(obj_state, c_obj, size_obj, obj_pose, graspable):
 
 
 
-
 def object_category(size_obj, obj_state, name_obj):  # estima la forma geometrica del objeto. (x,z,y)
-    
-    if(obj_state == 'horizontal'):
+    if(obj_state == 'horizontal') and (size_obj.x > MAXIMIUN_CUBE_SIZE):
         if('bowl' in name_obj):
             print("H-> BOWL")
             return "BOWL", True
         else:
             if((size_obj.x /size_obj.z) > 1.4) and ((size_obj.x /size_obj.y) > 1.4) and ((size_obj.y /size_obj.z) < 1.4) or ((size_obj.y < 0.15) and ((size_obj.x /size_obj.y) > 1.4) ):   # barra
-                print("H-> PRISM")
-                return "PRISM", True
+                print("H-> PRISM_H")
+                return "PRISM_HORIZONTAL", True
             else:
                 if((size_obj.x /size_obj.z) < 1.4) and ((size_obj.x /size_obj.y) < 1.4) and ((size_obj.y /size_obj.z) < 1.4): 
                     print("H-> CUBIC")
@@ -339,56 +302,22 @@ def object_category(size_obj, obj_state, name_obj):  # estima la forma geometric
                     return "BOX", True
 
     else:    # obj_state == 'vertical'
-        if(((size_obj.x /size_obj.z) > 1.4) and ((size_obj.x /size_obj.y) > 1.4) and ((size_obj.y /size_obj.z) < 1.4)) and (size_obj.x > MAXIMIUN_CUBE_SIZE):# and size_obj.x > MAXIMIUN_CUBE_SIZE):   # barra
-            print("V-> PRISM")
-            return "PRISM", True
+        if(((size_obj.x /size_obj.z) < 1.4) and ((size_obj.x /size_obj.y) < 1.4) and ((size_obj.y /size_obj.z) < 1.4)) and (size_obj.x < MAXIMIUN_CUBE_SIZE):# and size_obj.x > MAXIMIUN_CUBE_SIZE):   # barra
+
+            print("V-> CUBIC")
+            return "CUBIC", True
         else:
-            if (size_obj.x > MAXIMIUN_CUBE_SIZE):
+            if (size_obj.x > MAXIMIUN_CUBE_SIZE) and (size_obj.y > MAXIMIUN_CUBE_SIZE):
                 print("V-> BOX")
                 return "BOX", True
             else:
-                print("V-> CUBIC")
-                return "CUBIC", True
+                print("V-> PRISM_VERTICAL")
+                return "PRISM_VERTICAL", True
             
 
 
 
-
-
-
-    """
-    if (size_obj.z <= MAXIMUM_GRIP_LENGTH) and (size_obj.y <= MAXIMUM_GRIP_LENGTH): #and (size_obj.x >= 0.13):
-
-        #if((size_obj.x /size_obj.z) < 1.4) and (obj_state == 'horizontal'):     
-        if((size_obj.x /size_obj.z) < 2.5) and (obj_state == 'horizontal'):
-            # si el tamanio en z no es mucho menor al tamanio en x y la mayor componente es horizontal
-            print("The object is a bowl")
-            return "BOWL", True
-        else:
-            print("The object will be GRABBED AS CUBE..................")
-            return "CUBIC", True
-
-
-    else:
-        if(size_obj.z <= MAXIMUM_GRIP_LENGTH) and (size_obj.y <= MAXIMUM_GRIP_LENGTH) and (size_obj.x < MAXIMIUN_CUBE_SIZE):# and (size_obj.x > 0.07):
-            print("Object spheric or cubic SMALL, SUPERIOR GRIP will be made")
-            return "CUBIC", True
-            
-        else:
-            if((size_obj.x /size_obj.z) < 1.4) and (obj_state == 'horizontal'):
-                print("The object is a bowl")
-                return "BOWL", True
-            else:
-                if (size_obj.z >= MAXIMUM_GRIP_LENGTH) and (size_obj.y >= MAXIMUM_GRIP_LENGTH) and (size_obj.x >= MAXIMUM_GRIP_LENGTH):
-                    return "CUBIC", True#return "BOX", True
-                
-                print("size object > MAX LENGHT GRIP")
-                print("The object will be GRABBED as BOX....................")
-                return "BOX", True
-    """
-
-
-def callbackPoseObjectOrientation(req):  # Request is a PointCloud2
+def callbackPoseObject(req):  # Request is a PointCloud2
     cv_mats= get_cv_mats_from_cloud_message(req.point_cloud)
     obj_xyz = get_object_xyz(cv_mats , req.obj_mask)
 
@@ -401,7 +330,7 @@ def callbackPoseObjectOrientation(req):  # Request is a PointCloud2
     centroid = np.mean(obj_xyz, axis=0)
     pca_vectors, eig_val, size_obj = pca(obj_xyz)
     obj_pose, axis_x_obj, obj_state, c_obj, graspable = object_pose(centroid, pca_vectors[0], pca_vectors[1], size_obj, req.name )
-    #c_obj, graspable = object_category(size_obj, obj_state, req.name)
+    
 
     print("ObjPose node->CENTROID:____", centroid)
     #publish_arow_marker(centroid, axis_x_obj, 'base_link', ns ="principal_component", id=22)
@@ -414,24 +343,6 @@ def callbackPoseObjectOrientation(req):  # Request is a PointCloud2
     return resp
 
 
-def callbackPoseObject(req):
-    cv_mats= get_cv_mats_from_cloud_message(req.point_cloud)
-    obj_xyz = get_object_xyz(cv_mats , req.obj_mask)
-
-    print("**    OBJECT INFORMATION    **********************")
-
-    centroid = np.mean(obj_xyz, axis=0)
-    graspable = True
-    obj_pose = object_pose_without_PCA(centroid)
-    print("CENTROID:____", centroid)
-    resp = RecognizeObjectResponse()
-    resp.recog_object.graspable  = graspable 
-    resp.recog_object.pose = obj_pose
-    resp.recog_object.category = "CUBIC"
-    return resp
-
-
-
 
 def main():
     print("Obj_segmentation_and_pose --> obj_pose by Iby *******************(✿◠‿◠)7**")
@@ -439,9 +350,8 @@ def main():
 
     global pub_point, marker_pub, debug, PCA_vertical
     debug = False
-    PCA_vertical = False
-    rospy.Service("/vision/obj_segmentation/get_obj_pose_with_orientation", RecognizeObject, callbackPoseObjectOrientation) 
-    rospy.Service("/vision/obj_segmentation/get_obj_pose_without_orientation", RecognizeObject, callbackPoseObject) 
+    PCA_vertical = False  # PCA para objetos con 1a componente vertical
+    rospy.Service("/vision/obj_segmentation/get_obj_pose", RecognizeObject, callbackPoseObject) 
     pub_point = rospy.Publisher('/vision/detected_object', PointStamped, queue_size=10)
     marker_pub = rospy.Publisher("/vision/object_recognition/markers", Marker, queue_size = 10) 
 

@@ -43,11 +43,13 @@ class Initial(smach.State):
         # -----INIT GRAMMAR FOR VOSK
         # -----Use with get_keywords_speech()
         # -----------SPEECH REC
-        drinks = ['coke','juice','milk', 'water', 'soda', 'wine', 
-                  'I want a', 'I would like a', 'tea', 'iced tea', 'cola', 'red wine', 'orange juice', 'tropical juice']
+        # drinks = ['coke','juice','milk', 'water', 'soda', 'wine', 
+        #           'I want a', 'I would like a', 'tea', 'iced tea', 'cola', 'red wine', 'orange juice', 'tropical juice']
+        drinks = ['cola', 'ice_tea', 'water', 'milk', 'big_coke', 'fanta', 'dubbelfris']
        
-        names = [' my name is' , 'i am','adel', 'angel', 'axel', 
-                 'charlie', 'jane', 'john', 'jules', 'morgan', 'paris', 'robin', 'simone', 'jack']                    
+        names = ['Sophie', 'Julia', 'Emma', 'Sara', 'Laura', 'Hayley', 'Susan', 'Fleur', 'Gabriëlle', 'Robin', 'John', 'Liam',
+                  'Lucas', 'William', 'Kevin', 'Jesse', 'Noah', 'Harrie', 'Peter', 'Robin']
+                 ##'adel', 'angel', 'axel', 'charlie', 'jane', 'john', 'jules', 'morgan', 'paris', 'robin', 'simone', 'jack']                    
         gram = drinks + names + userdata.confirm_list + userdata.negation_list
 
         print("** confirmation list: ") 
@@ -156,7 +158,7 @@ class Scan_face(smach.State):
         head.set_joint_values([0.0, -0.1])
         print('Scanning for faces')
         voice.talk('Scanning for faces')
-        
+
         # For simulation use camera_enable = True
         res, userdata.face_img = wait_for_face(lap_camera=camera_enable)  # default 10 secs
         if res != None:
@@ -193,6 +195,10 @@ class Decide_face(smach.State):
             print('Is it correct?')
             voice.talk(f'I found you, I Think you are, {userdata.name}.')
             voice.talk('Is it correct?')
+        
+            # TODO: Validate sentence
+            print(f'Please answer, Robot yes or Robot no.')
+            voice.talk(f'Please answer,. Robot yes... or. Robot no.')
 
             if vosk_enable:
                 rospy.logwarn('Listening now (Cc')
@@ -204,15 +210,25 @@ class Decide_face(smach.State):
                 confirmation = JuskeshinoHRI.waitForNewSentence(userdata.speech_time) # 10 is to much?
             
             print(confirmation)
-            if confirmation not in userdata.confirm_list:
+            if confirmation == "robot yes":
+                party.add_guest(userdata.name)
+                return 'succ'
+            elif confirmation == "robot no":
                 return 'unknown'
-            elif confirmation == "timeout":
+            else:
                 print('I could not hear you, lets try again, please speak louder.')
                 voice.talk('I could not hear you, lets try again, please speak louder.')
                 return "failed"
-            else:
-                party.add_guest(userdata.name)
-                return 'succ'
+            
+            # if confirmation not in userdata.confirm_list:
+            #     return 'unknown'
+            # elif confirmation == "timeout":
+            #     print('I could not hear you, lets try again, please speak louder.')
+            #     voice.talk('I could not hear you, lets try again, please speak louder.')
+            #     return "failed"
+            # else:
+            #     party.add_guest(userdata.name)
+            #     return 'succ'
 
 
 # --------------------------------------------------
@@ -264,6 +280,9 @@ class New_face(smach.State):
             voice.talk('Please repeat it and speak louder.')
             return 'failed'
 
+        if '[unk]' in name:
+            name = 'william'
+
         print(f'Is {name} your name?')
         voice.talk(f'Is {name} your name?')
 
@@ -277,7 +296,7 @@ class New_face(smach.State):
 
         print(confirmation)
         confirmation = confirmation.split(' ')
-        confirm = match_speech(confirmation, userdata.confirm_list)
+        confirm = match_speech(confirmation, "robot yes") #userdata.confirm_list
         if confirm:
             userdata.name = name
             print(f'Nice to Meet You {userdata.name}')
@@ -337,9 +356,16 @@ class Get_drink(smach.State):
             print("Sorry, couldn't hear you. Please speak louder.")
             voice.talk("Sorry, couldn't hear you. Please speak louder.")
             return 'tries'
+        
+        if '[unk]' in drink:
+            drink = 'water'
         print(f'Did you say {drink}?')
         voice.talk(f'Did you say {drink}?')
         
+        # TODO: Validate sentence
+        print(f'Please answer, Robot yes or Robot no.')
+        voice.talk(f'Please answer, Robot yes... or Robot no.')
+
         rospy.sleep(0.3)
         # TODO: TEST VOICE BEFORE START
         if vosk_enable:
@@ -350,7 +376,7 @@ class Get_drink(smach.State):
             confirmation = JuskeshinoHRI.waitForNewSentence(userdata.speech_time)
 
         print(confirmation)
-        confirm = match_speech(confirmation, userdata.confirm_list)
+        confirm = match_speech(confirmation, "robot yes") # userdata.confirm_list
         if not confirm: 
             return 'tries' 
 
@@ -424,9 +450,19 @@ class Find_sitting_place(smach.State):
         print("I am looking for a place to sit")
         voice.talk('I am looking for a place to sit')
         isPlace, place = party.get_active_seat()
+        place_name = place
+
+        print(">>>>>>>>>>>>> place", place_name)
+        if place_name == "Place_1":
+            place_name = "couch, left side"
+        elif place_name == "Place_2":
+            place_name = "couch, right side"
+        else:
+            place_name = "lounge chair"
 
         if self.failed and self.tries < self.n_sits:
             place = party.get_any_available_seat()
+
             if place != None:
                 isPlace = True
 
@@ -446,14 +482,16 @@ class Find_sitting_place(smach.State):
         # For simulation use camera_enable = True
         res , _ = wait_for_face(lap_camera=camera_enable)  # seconds
         if res == None:
-            print("Place is: ", place)
+            print("Place is: ", place_name)
             guest = party.get_active_guest_name()
             head.turn_base_gaze(tf=place, to_gaze='base_link') #'arm_flex_link'
             head.set_named_target('neutral')
             JuskeshinoHardware.moveLeftArmWithTrajectory(self.l_arm_offerSit, 6)
             rospy.sleep(0.8)
-            print(f'{guest}, Here is a place to sit')
-            voice.talk(f'{guest}, Here is a place to sit')
+            # print(f'{guest}, Here is a place to sit')
+            # voice.talk(f'{guest}, Here is a place to sit')
+            print(f'{guest}, place to sit on {place_name}')
+            voice.talk(f'{guest}, place to sit on {place_name}')
             JuskeshinoHardware.moveLeftArmWithTrajectory(userdata.l_arm_home, 6)
             party.seat_confirmation()
             self.tries = 0
@@ -505,11 +543,16 @@ class Find_host_alternative(smach.State):
             print(f'I am sorry, I can not find the host, lets keep going')
             voice.talk(f'I am sorry, I can not find the host, lets keep going')
             userdata.name_like_host, _ = party.get_host_info()
+            self.tries = 0
             return 'failed'
         
-        print(f'looking for host on: {host_loc}')
+        # print(f'looking for host on: {host_loc}')
+        # host_place_say = host_loc.replace('_', ' ')
+        # voice.talk(f'looking for host on: {host_place_say}')
+        print(f'looking for host {host_name}')
         host_place_say = host_loc.replace('_', ' ')
-        voice.talk(f'looking for host on: {host_place_say}')
+        voice.talk(f'looking for host {host_name}')
+
         tf_host = host_loc.replace('_', '_face')
         head.to_tf(tf_host)
 
@@ -588,7 +631,7 @@ if __name__ == '__main__':
         # State machine for Receptionist task
         # Initial states routine
         smach.StateMachine.add("INITIAL", Initial(),              
-                               transitions={'failed':'INITIAL', 'succ':'WAIT_DOOR_OPENED'})
+                               transitions={'failed':'INITIAL', 'succ':'GOTO_DOOR'})
         
         # smach.StateMachine.add("WAIT_PUSH_HAND", Wait_push_hand(),       
         #                        transitions={'failed': 'WAIT_PUSH_HAND', 'succ': 'GOTO_DOOR'})

@@ -3,11 +3,16 @@ entrance:
   y: 0.0
   theta: 0.0
   parent: home
-start:
+start_position:
   x: 2.0
   y: 0.0
   theta: 0.5
   parent: home
+inspection_point:
+  x: 2.0
+  y: 0.0
+  theta: 0.5    
+  parent: home  
 exit:
   x: 0.0
   y: 0.0

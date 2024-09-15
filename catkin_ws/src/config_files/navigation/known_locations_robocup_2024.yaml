@@ -1,0 +1,147 @@
+bowl_table_robocup:
+ x: 1.45
+ y: 5.17
+ theta: 1.635
+ parent: home
+cereal_table_robocup:
+ x: 0.51
+ y: 5.1
+ theta: 1.635
+ parent: home
+milk_table_robocup:
+ x: 0.58
+ y: 1.14
+ theta: -1.635
+ parent: home
+breakfast_table_robocup:
+  x: 1.02
+  y: 3.54
+  theta: -1.635
+  parent: home
+scan_cabinet:
+  x: 0.44
+  y: 1.70
+  theta: -1.5708
+  parent: home
+table:
+  x: 3.12
+  y: 3.05
+  theta: 3.14
+  parent: home
+entrance:
+  x: 5.79
+  y: -3.32
+  theta: 1.5708
+  parent: home
+start_position:
+  x: 5.34
+  y: 1.54
+  theta: 0.8    
+  parent: home  
+inspection_point:
+  x: 5.34
+  y: 1.54
+  theta: 0.8    
+  parent: home  
+exit:
+  x: -1.0
+  y: 0.0
+  theta: 0.0
+  parent: home
+hallway_cabinet:
+  x: 7.15
+  y: -1.98
+  theta: -1.57
+  parent: home
+desk:
+  x: 3.54
+  y: -1.57
+  theta: 0
+  parent: home
+shelf:
+  x: 0.5
+  y: -2.56
+  theta: -1.57
+  parent: home
+coathanger:
+  x: 5.38
+  y: -0.569
+  theta: 0
+  parent: home
+tv_table:
+  x: 7.2
+  y: 1.97
+  theta: -1.57
+  parent: home
+lounge_chair:
+  x: 7.84
+  y: 4.21
+  theta: 0
+  parent: home
+lamp:
+  x: 7.75
+  y: 5.75
+  theta: 0.0
+  parent: home
+couch:
+  x: 6.23
+  y: 5.07
+  theta: 1.57
+  parent: home
+coffee_table:
+  x: 5.38
+  y: 3.73
+  theta: 0
+  parent: home
+trashcan:
+  x: 4.03
+  y: 1.48
+  theta: -1.57
+  parent: home
+
+kitchen_cabinet:
+  x: 0.48
+  y: 1.70
+  theta: -1.5708
+  parent: home
+dinner_table:
+  x: 3.12
+  y: 3.05
+  theta: 3.14
+  parent: home
+dishwasher:
+  x: 1.49
+  y: 4.94
+  theta: 1.57
+  parent: home
+kitchen_counter:
+  x: 1.58
+  y: 5.04
+  theta: 1.57
+  parent: home
+hallway:
+  x: 7.12
+  y: -1.21
+  theta: -1.57
+  parent: home
+office:
+  x: 2.8
+  y: -1.66
+  theta: 0
+  parent: home
+living_room:
+  x: 6.15
+  y: 2.62
+  theta: 1.57
+  parent: home
+kitchen:
+  x: 3.44
+  y: 3.16
+  theta: 3.14159
+  parent: home
+mesa_1:
+  x: 1.7
+  y: 2.54
+  theta: 1.66
+  parent: home
+
